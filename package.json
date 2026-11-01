@@ -13,7 +13,7 @@
     "start:prod": "node dist/scripts/migrate.js && node dist/main.js",
     "start:dev": "nest start --watch",
     "migrate": "node dist/scripts/migrate.js",
-    "migrate:dev": "nest start --entryFile scripts/migrate",
+    "migrate:dev": "nest build && node --env-file=.env dist/scripts/migrate.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

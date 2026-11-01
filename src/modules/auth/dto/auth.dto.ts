@@ -46,11 +46,13 @@ export class RegisterDto {
 }
 
 export class LoginDto {
+  /** @example "ada@example.com" */
   @Transform(asEmail)
   @IsEmail()
   @MaxLength(320)
   email!: string;
 
+  /** @example "correct-horse-battery" */
   @IsString()
   @IsNotEmpty()
   @MaxLength(128)

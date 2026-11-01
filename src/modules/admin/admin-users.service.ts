@@ -23,13 +23,16 @@ export class AdminUsersService {
     cursor: string | undefined,
     limit: number,
   ): Promise<Page<AdminUserResponseDto>> {
-    const users = await this.dataSource.manager.find(User, {
-      where: { ...(email ? { email } : {}), ...(cursor ? { id: LessThan(cursor) } : {}) },
-      order: { id: 'DESC' },
-      take: limit + 1,
-    });
+    const [users, total] = await Promise.all([
+      this.dataSource.manager.find(User, {
+        where: { ...(email ? { email } : {}), ...(cursor ? { id: LessThan(cursor) } : {}) },
+        order: { id: 'DESC' },
+        take: limit + 1,
+      }),
+      this.dataSource.manager.countBy(User, email ? { email } : {}),
+    ]);
     const wallets = await this.walletsByUser(users.map((u) => u.id));
-    return toPage(users, limit, (user) => this.toResponse(user, wallets.get(user.id) ?? []));
+    return toPage(users, limit, total, (user) => this.toResponse(user, wallets.get(user.id) ?? []));
   }
 
   async get(id: string): Promise<AdminUserResponseDto> {

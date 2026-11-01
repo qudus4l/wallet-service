@@ -40,7 +40,7 @@ export interface LedgerEntry {
   direction: 'DEBIT' | 'CREDIT';
   amount: number;
   balanceAfter: number;
-  counterpartyWalletId: string;
+  counterpartyWalletId: string | null;
   narration: string | null;
   createdAt: string;
 }
@@ -49,9 +49,10 @@ export interface Recipient {
   currency: string;
   accountName: string;
 }
+export type IdentityType = 'EMAIL' | 'PHONE';
 export interface BlacklistEntry {
   id: string;
-  type: 'EMAIL' | 'PHONE';
+  type: IdentityType;
   value: string;
   reason: string;
   createdBy: string;
@@ -60,9 +61,11 @@ export interface BlacklistEntry {
 export interface AuditLog {
   id: string;
   actorId: string;
+  actorName: string | null;
   action: string;
   targetType: string;
   targetId: string;
+  targetName: string | null;
   reason: string | null;
   metadata: Record<string, unknown>;
   createdAt: string;
@@ -70,6 +73,7 @@ export interface AuditLog {
 export interface Page<T> {
   data: T[];
   nextCursor: string | null;
+  total: number;
 }
 
 /** An error from the API's envelope: `{ error: { code, message, details }, requestId }`. */
@@ -90,9 +94,63 @@ export class ApiError extends Error {
   }
 }
 
+/** UI copy for API errors (FRONTEND_SPEC §3). Branches on the code, never the message. */
+export function errorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return 'Something went wrong. Try again.';
+  switch (error.code) {
+    case 'INVALID_CREDENTIALS':
+      return 'Email or password is incorrect.';
+    case 'ACCOUNT_BLOCKED':
+      return 'This account is blocked.';
+    case 'ACCOUNT_RESTRICTED':
+      return 'This account can’t be used for that. Contact support.';
+    case 'ACCOUNT_ALREADY_EXISTS':
+      return 'An account with these details already exists.';
+    case 'BLACKLIST_ENTRY_EXISTS':
+      return 'Already on the blacklist.';
+    case 'INSUFFICIENT_FUNDS':
+      return 'Your balance is too low for this payment.';
+    case 'RECIPIENT_UNAVAILABLE':
+      return 'That account can’t receive money right now.';
+    case 'AMOUNT_LIMIT_EXCEEDED':
+      return 'The limit is ₦10,000,000.00 per payment.';
+    case 'RATE_LIMITED':
+      return 'Too many attempts. Wait a minute and try again.';
+    case 'TRY_AGAIN':
+      return 'The service is busy. Try again.';
+    case 'NETWORK_ERROR':
+      return 'Couldn’t reach the server. Check your connection and try again.';
+    case 'TIMEOUT':
+      return 'The server took too long to respond. Try again.';
+    case 'NOT_FOUND':
+      return 'Not found.';
+    default:
+      return error.requestId
+        ? `Something went wrong. Error reference: ${error.requestId}`
+        : 'Something went wrong. Try again.';
+  }
+}
+
 const TOKEN_KEY = 'wallet.token';
-let token: string | null = sessionStorage.getItem(TOKEN_KEY);
-let onUnauthorized: (() => void) | null = null;
+const TIMEOUT_MS = 75_000;
+/** After this long the free-plan server is probably cold-starting. */
+const SLOW_MS = 3_000;
+
+function readStoredToken(): string | null {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+let token: string | null = readStoredToken();
+let handlers: {
+  unauthorized?: () => void;
+  blocked?: () => void;
+  slow?: (slow: boolean) => void;
+} = {};
+let slowCount = 0;
 
 export const session = {
   get token() {
@@ -100,11 +158,16 @@ export const session = {
   },
   set(value: string | null) {
     token = value;
-    if (value) sessionStorage.setItem(TOKEN_KEY, value);
-    else sessionStorage.removeItem(TOKEN_KEY);
+    try {
+      if (value) sessionStorage.setItem(TOKEN_KEY, value);
+      else sessionStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // Storage unavailable (private mode): the token still lives in memory.
+    }
   },
-  onUnauthorized(handler: () => void) {
-    onUnauthorized = handler;
+  /** Session-wide reactions: expired token, blocked account, server waking up. */
+  on(next: typeof handlers) {
+    handlers = next;
   },
 };
 
@@ -118,7 +181,7 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'DELETE';
   body?: unknown;
   idempotencyKey?: string;
-  /** Use a specific token instead of the signed-in session (e.g. the live demo's throwaway users). */
+  /** Use a specific token instead of the signed-in session (the live tests' throwaway users). */
   asToken?: string;
   query?: Record<string, string | number | undefined>;
 }
@@ -137,23 +200,40 @@ export async function request<T>(
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let markedSlow = false;
+  const slowTimer = setTimeout(() => {
+    markedSlow = true;
+    if (slowCount++ === 0) handlers.slow?.(true);
+  }, SLOW_MS);
+
   let response: Response;
+  let text: string;
   try {
     response = await fetch(url, {
       method: options.method ?? 'GET',
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
     });
+    text = await response.text();
   } catch {
-    throw new ApiError(
-      0,
-      'NETWORK_ERROR',
-      'Could not reach the server. Check your connection and try again.',
-    );
+    throw controller.signal.aborted
+      ? new ApiError(0, 'TIMEOUT', 'The server took too long to respond.')
+      : new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server.');
+  } finally {
+    clearTimeout(timeout);
+    clearTimeout(slowTimer);
+    if (markedSlow && --slowCount === 0) handlers.slow?.(false);
   }
 
-  const text = await response.text();
-  const json: unknown = text ? JSON.parse(text) : undefined;
+  let json: unknown;
+  try {
+    json = text ? JSON.parse(text) : undefined;
+  } catch {
+    json = undefined;
+  }
   if (!response.ok) {
     const envelope = json as
       | {
@@ -168,7 +248,9 @@ export async function request<T>(
       envelope?.error?.details,
       envelope?.requestId,
     );
-    if (response.status === 401 && !options.asToken && token) onUnauthorized?.();
+    const ownSession = !options.asToken && Boolean(token);
+    if (ownSession && response.status === 401) handlers.unauthorized?.();
+    if (ownSession && error.code === 'ACCOUNT_BLOCKED') handlers.blocked?.();
     throw error;
   }
   return {
@@ -177,6 +259,10 @@ export async function request<T>(
     replayed: response.headers.get('Idempotent-Replayed') === 'true',
   };
 }
+
+/** Page sizes match the design: 6 activity rows, 5 admin rows, then "Load more". */
+const ACTIVITY_PAGE = 6;
+const ADMIN_PAGE = 5;
 
 export const api = {
   register: (body: { email: string; password: string; fullName: string; phone?: string }) =>
@@ -190,7 +276,7 @@ export const api = {
   wallets: (asToken?: string) => request<Wallet[]>('/v1/wallets', { asToken }),
   history: (walletId: string, cursor?: string) =>
     request<Page<LedgerEntry>>(`/v1/wallets/${walletId}/transactions`, {
-      query: { cursor, limit: 20 },
+      query: { cursor, limit: ACTIVITY_PAGE },
     }),
   resolveRecipient: (email: string) =>
     request<Recipient>('/v1/wallets/resolve', { query: { email } }),
@@ -207,12 +293,15 @@ export const api = {
 
   admin: {
     users: (email?: string, cursor?: string) =>
-      request<Page<AdminUser>>('/v1/admin/users', { query: { email, cursor, limit: 20 } }),
+      request<Page<AdminUser>>('/v1/admin/users', { query: { email, cursor, limit: ADMIN_PAGE } }),
     user: (id: string) => request<AdminUser>(`/v1/admin/users/${id}`),
     block: (id: string, reason: string) =>
       request<AdminUser>(`/v1/admin/users/${id}/block`, { method: 'POST', body: { reason } }),
-    unblock: (id: string) =>
-      request<AdminUser>(`/v1/admin/users/${id}/unblock`, { method: 'POST', body: {} }),
+    unblock: (id: string, reason?: string) =>
+      request<AdminUser>(`/v1/admin/users/${id}/unblock`, {
+        method: 'POST',
+        body: reason ? { reason } : {},
+      }),
     deposit: (walletId: string, amount: number, idempotencyKey: string, narration?: string) =>
       request<Transaction>(`/v1/admin/wallets/${walletId}/deposits`, {
         method: 'POST',
@@ -220,19 +309,21 @@ export const api = {
         idempotencyKey,
       }),
     blacklist: (cursor?: string) =>
-      request<Page<BlacklistEntry>>('/v1/admin/blacklist', { query: { cursor, limit: 50 } }),
-    addToBlacklist: (body: { type: 'EMAIL' | 'PHONE'; value: string; reason: string }) =>
+      request<Page<BlacklistEntry>>('/v1/admin/blacklist', {
+        query: { cursor, limit: ADMIN_PAGE },
+      }),
+    addToBlacklist: (body: { type: IdentityType; value: string; reason: string }) =>
       request<BlacklistEntry>('/v1/admin/blacklist', { method: 'POST', body }),
     removeFromBlacklist: (id: string) =>
       request<void>(`/v1/admin/blacklist/${id}`, { method: 'DELETE' }),
-    checkBlacklist: (type: 'EMAIL' | 'PHONE', value: string) =>
+    checkBlacklist: (type: IdentityType, value: string) =>
       request<{ listed: boolean; entry: BlacklistEntry | null }>('/v1/admin/blacklist/check', {
         query: { type, value },
       }),
     auditLogs: (cursor?: string) =>
-      request<Page<AuditLog>>('/v1/admin/audit-logs', { query: { cursor, limit: 50 } }),
+      request<Page<AuditLog>>('/v1/admin/audit-logs', { query: { cursor, limit: ADMIN_PAGE } }),
   },
 };
 
 /** A fresh key per logical operation; reused verbatim when that operation is retried. */
-export const newIdempotencyKey = () => crypto.randomUUID();
+export const newIdempotencyKey = (): string => crypto.randomUUID();

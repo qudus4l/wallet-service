@@ -63,6 +63,8 @@ export class LedgerPageDto {
   @ApiProperty({ type: [LedgerEntryResponseDto] })
   data!: LedgerEntryResponseDto[];
   nextCursor!: string | null;
+  /** Rows matching the query across all pages. */
+  total!: number;
 }
 
 export class ResolveRecipientQueryDto {

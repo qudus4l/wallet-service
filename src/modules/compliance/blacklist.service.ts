@@ -106,11 +106,14 @@ export class BlacklistService {
   }
 
   async list(cursor: string | undefined, limit: number): Promise<Page<BlacklistEntryResponseDto>> {
-    const rows = await this.dataSource.manager.find(BlacklistEntry, {
-      where: cursor ? { id: LessThan(cursor) } : {},
-      order: { id: 'DESC' },
-      take: limit + 1,
-    });
-    return toPage(rows, limit, (row) => BlacklistEntryResponseDto.from(row));
+    const [rows, total] = await Promise.all([
+      this.dataSource.manager.find(BlacklistEntry, {
+        where: cursor ? { id: LessThan(cursor) } : {},
+        order: { id: 'DESC' },
+        take: limit + 1,
+      }),
+      this.dataSource.manager.count(BlacklistEntry),
+    ]);
+    return toPage(rows, limit, total, (row) => BlacklistEntryResponseDto.from(row));
   }
 }

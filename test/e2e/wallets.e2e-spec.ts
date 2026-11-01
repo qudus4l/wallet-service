@@ -54,6 +54,7 @@ describe('Wallets (e2e)', () => {
       counterpartyWalletId: bob.walletId,
     });
     expect(first.body.nextCursor).toEqual(expect.any(String));
+    expect(first.body.total).toBe(4);
 
     const second = await get(
       alice,
@@ -82,6 +83,28 @@ describe('Wallets (e2e)', () => {
       for (const email of ['ghost@example.com', alice.email, process.env.ADMIN_EMAIL!]) {
         const res = await get(alice, `/v1/wallets/resolve?email=${email}`).expect(404);
         expect(res.body.error.code).toBe('NOT_FOUND');
+      }
+    });
+
+    it('refuses blocked or blacklisted recipients with the generic RECIPIENT_UNAVAILABLE', async () => {
+      const admin = await t.adminToken();
+      const carol = await t.createUser();
+      await t
+        .http()
+        .post(`/v1/admin/users/${bob.id}/block`)
+        .set('Authorization', `Bearer ${admin}`)
+        .send({ reason: 'Review' })
+        .expect(200);
+      await t
+        .http()
+        .post('/v1/admin/blacklist')
+        .set('Authorization', `Bearer ${admin}`)
+        .send({ type: 'EMAIL', value: carol.email, reason: 'Fraud' })
+        .expect(201);
+
+      for (const email of [bob.email, carol.email]) {
+        const res = await get(alice, `/v1/wallets/resolve?email=${email}`).expect(422);
+        expect(res.body.error.code).toBe('RECIPIENT_UNAVAILABLE');
       }
     });
 

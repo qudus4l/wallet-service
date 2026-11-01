@@ -14,6 +14,7 @@
     "start:dev": "nest start --watch",
     "migrate": "node dist/scripts/migrate.js",
     "migrate:dev": "nest build && node --env-file=.env dist/scripts/migrate.js",
+    "demo:seed": "node dist/scripts/demo-data.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

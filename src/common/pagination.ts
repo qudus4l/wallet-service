@@ -21,15 +21,18 @@ export class PaginationQueryDto {
 export interface Page<T> {
   data: T[];
   nextCursor: string | null;
+  /** Rows matching the query across all pages (e.g. "6 of 8"). */
+  total: number;
 }
 
 /**
  * Keyset pagination over uuidv7 ids (time-ordered). Callers fetch `limit + 1` rows;
- * the extra row only signals that another page exists.
+ * the extra row only signals that another page exists. `total` is a separate COUNT.
  */
 export function toPage<T extends { id: string }, R>(
   rows: T[],
   limit: number,
+  total: number,
   map: (row: T) => R,
 ): Page<R> {
   const hasMore = rows.length > limit;
@@ -37,5 +40,6 @@ export function toPage<T extends { id: string }, R>(
   return {
     data: pageRows.map(map),
     nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+    total,
   };
 }

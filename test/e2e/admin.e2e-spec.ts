@@ -61,7 +61,10 @@ describe('Admin (e2e)', () => {
       expect(audit.body.data[1]).toMatchObject({
         targetId: user.id,
         reason: 'Suspicious activity',
+        actorName: 'Administrator',
+        targetName: 'Test User',
       });
+      expect(audit.body.total).toBe(2);
     });
 
     it('is idempotent and does not duplicate audit entries', async () => {
@@ -96,6 +99,21 @@ describe('Admin (e2e)', () => {
           wallets: [expect.objectContaining({ id: user.walletId })],
         }),
       ]);
+      expect(res.body.total).toBe(1);
+
+      const all = await as(admin).get('/v1/admin/users?limit=1').expect(200);
+      expect(all.body.total).toBe(2); // the user and the seeded admin
+    });
+
+    it('names the wallet owner on deposit audit entries', async () => {
+      await t.deposit(user.walletId, 500);
+      const audit = await as(admin).get('/v1/admin/audit-logs').expect(200);
+      expect(audit.body.data[0]).toMatchObject({
+        action: 'WALLET_DEPOSIT',
+        targetId: user.walletId,
+        targetName: 'Test User',
+        actorName: 'Administrator',
+      });
     });
   });
 
@@ -131,6 +149,16 @@ describe('Admin (e2e)', () => {
         'BLACKLIST_REMOVED',
         'BLACKLIST_ADDED',
       ]);
+      expect(audit.body.data[1]).toMatchObject({ targetName: 'bad@actor.com' });
+    });
+
+    it('reports the total across pages', async () => {
+      for (const value of ['a@x.com', 'b@x.com', 'c@x.com']) {
+        await as(admin).post('/v1/admin/blacklist', { type: 'EMAIL', value, reason: 'x' });
+      }
+      const page = await as(admin).get('/v1/admin/blacklist?limit=2').expect(200);
+      expect(page.body).toMatchObject({ total: 3, nextCursor: expect.any(String) });
+      expect(page.body.data).toHaveLength(2);
     });
 
     it('validates phone entries as E.164', async () => {

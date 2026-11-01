@@ -41,4 +41,6 @@ export class AdminUserResponseDto extends UserResponseDto {
 export class AdminUserPageDto {
   data!: AdminUserResponseDto[];
   nextCursor!: string | null;
+  /** Rows matching the query across all pages. */
+  total!: number;
 }

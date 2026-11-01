@@ -43,8 +43,15 @@ export function isRetryable(error: unknown): boolean {
   return code === PG.DEADLOCK_DETECTED || code === PG.SERIALIZATION_FAILURE;
 }
 
-/** Bounded waits that tripped: the client should retry later. */
+/** node-postgres pool: every connection busy for longer than connectionTimeoutMillis. */
+const POOL_TIMEOUT_MESSAGE = 'timeout exceeded when trying to connect';
+
+/** Bounded waits that tripped (lock, statement, pool checkout): the client should retry later. */
 export function isTimeout(error: unknown): boolean {
   const code = pgErrorCode(error);
-  return code === PG.LOCK_NOT_AVAILABLE || code === PG.QUERY_CANCELED;
+  return (
+    code === PG.LOCK_NOT_AVAILABLE ||
+    code === PG.QUERY_CANCELED ||
+    (error instanceof Error && error.message === POOL_TIMEOUT_MESSAGE)
+  );
 }

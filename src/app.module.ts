@@ -39,6 +39,11 @@ import { WalletsModule } from './modules/wallets/wallets.module';
               '*.password',
               '*.passwordHash',
               '*.accessToken',
+              // QueryFailedError carries bound parameters and row details (emails, hashes).
+              'err.parameters',
+              'err.detail',
+              'err.driverError.detail',
+              'err.driverError.parameters',
             ],
             censor: '[REDACTED]',
           },

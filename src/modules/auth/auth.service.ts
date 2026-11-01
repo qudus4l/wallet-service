@@ -45,7 +45,8 @@ export class AuthService {
     try {
       return await this.dataSource.transaction(async (manager) => {
         if (await this.blacklist.isAnyListed(manager, identitiesOf(identity))) {
-          this.logger.warn({ email: dto.email }, 'Registration rejected by blacklist screening');
+          // No identifiers in the log line; the request id correlates it.
+          this.logger.warn('Registration rejected by blacklist screening');
           throw new AppError(
             'ACCOUNT_RESTRICTED',
             'Registration is not available for these details',
@@ -63,13 +64,15 @@ export class AuthService {
         return { user: UserResponseDto.from(user), wallets: [WalletResponseDto.from(wallet)] };
       });
     } catch (error) {
-      if (isUniqueViolation(error, 'users_email_key')) {
-        throw new AppError('EMAIL_ALREADY_REGISTERED', 'An account with this email already exists');
-      }
-      if (isUniqueViolation(error, 'users_phone_key')) {
+      // One generic conflict for email *or* phone, so the response does not reveal which
+      // identifier is registered. Residual enumeration risk is bounded by the /auth rate limit.
+      if (
+        isUniqueViolation(error, 'users_email_key') ||
+        isUniqueViolation(error, 'users_phone_key')
+      ) {
         throw new AppError(
-          'PHONE_ALREADY_REGISTERED',
-          'An account with this phone number already exists',
+          'ACCOUNT_ALREADY_EXISTS',
+          'An account with these details already exists',
         );
       }
       throw error;

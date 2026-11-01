@@ -12,6 +12,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
+    "isolatedModules": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -19,6 +20,7 @@
     "declaration": false,
     "removeComments": true,
     "incremental": true,
+    "rootDir": ".",
     "outDir": "./dist"
   },
   "include": ["src/**/*", "test/**/*"]

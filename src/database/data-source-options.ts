@@ -21,7 +21,9 @@ export function buildDataSourceOptions(env: DatabaseEnv): DataSourceOptions {
     migrationsTableName: 'typeorm_migrations',
     synchronize: false,
     migrationsRun: false,
-    logging: ['error', 'warn'],
+    // Off: TypeORM's logger prints bound parameters (emails, hashes) and bypasses pino redaction.
+    // Query errors still surface as exceptions and are logged, redacted, by the exception filter.
+    logging: false,
     extra: {
       max: env.DB_POOL_MAX,
       application_name: 'wallet-service',

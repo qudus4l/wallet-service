@@ -18,8 +18,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "jest --config test/jest-unit.config.js",
-    "test:e2e": "jest --config test/jest-e2e.config.js --runInBand",
+    "test": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-unit.config.js",
+    "test:e2e": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-e2e.config.js --runInBand",
     "test:all": "npm test && npm run test:e2e"
   },
   "dependencies": {

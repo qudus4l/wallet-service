@@ -11,7 +11,7 @@ A wallet service with user accounts, wallets and wallet-to-wallet transfers that
 | **Design document**    | [`docs/DESIGN.md`](docs/DESIGN.md) |
 | **Decision records**   | [`docs/adr/`](docs/adr/README.md)  |
 
-> **Free-tier notes for reviewers.** The service runs on Render's free plan: the first request after 15 idle minutes takes about a minute while the instance wakes up. The free database expires 30 days after creation (see [ADR-0007](docs/adr/0007-hosting-on-render-free-tier.md)).
+> **Free-tier notes for reviewers.** The service runs on Render's free plan: the first request after 15 idle minutes takes about a minute while the instance wakes up. The free database expires on **2026-12-01**, 30 days after creation (see [ADR-0007](docs/adr/0007-hosting-on-render-free-tier.md)).
 
 ---
 

@@ -69,6 +69,28 @@ describe('Wallets (e2e)', () => {
     );
   });
 
+  describe('GET /v1/wallets/resolve (name enquiry)', () => {
+    it('finds the recipient wallet by email and returns only a masked name', async () => {
+      const res = await get(alice, `/v1/wallets/resolve?email=${bob.email.toUpperCase()}`).expect(
+        200,
+      );
+      expect(res.body).toEqual({ walletId: bob.walletId, currency: 'NGN', accountName: 'Test U.' });
+      expect(JSON.stringify(res.body)).not.toContain(bob.email);
+    });
+
+    it('returns 404 for unknown emails, the caller themselves and administrators', async () => {
+      for (const email of ['ghost@example.com', alice.email, process.env.ADMIN_EMAIL!]) {
+        const res = await get(alice, `/v1/wallets/resolve?email=${email}`).expect(404);
+        expect(res.body.error.code).toBe('NOT_FOUND');
+      }
+    });
+
+    it('requires authentication and a valid email', async () => {
+      await t.http().get(`/v1/wallets/resolve?email=${bob.email}`).expect(401);
+      await get(alice, '/v1/wallets/resolve?email=not-an-email').expect(400);
+    });
+  });
+
   it('caps the page size', async () => {
     await get(alice, `/v1/wallets/${alice.walletId}/transactions?limit=101`).expect(400);
   });

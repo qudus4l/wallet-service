@@ -6,8 +6,9 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    # NODE_ENV=production makes npm skip devDependencies, which the build needs; prune after.
-    buildCommand: npm ci --include=dev && npm run build && npm prune --omit=dev
+    # NODE_ENV=production makes npm skip devDependencies, which the builds need; prune after.
+    # The React frontend (web/) is built first and served by NestJS from the same origin.
+    buildCommand: npm ci --include=dev && npm run build:web && rm -rf web/node_modules && npm run build && npm prune --omit=dev
     # The free plan has no preDeployCommand: migrate + seed, then exec so SIGTERM reaches Node.
     startCommand: node dist/scripts/migrate.js && exec node dist/main.js
     healthCheckPath: /health/ready

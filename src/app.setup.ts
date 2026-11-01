@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { requestIdMiddleware } from './common/request-id';
 import { AppConfig } from './config/app-config.service';
+import { serveWebApp } from './web-app';
 
 /** HTTP-level configuration shared by main.ts and the e2e test harness. */
 export function configureApp(app: NestExpressApplication): void {
@@ -24,6 +25,7 @@ export function configureApp(app: NestExpressApplication): void {
   // handlers cover every path. Health routes are version-neutral.
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.enableShutdownHooks();
+  serveWebApp(app);
 
   if (config.get('SWAGGER_ENABLED')) {
     const document = SwaggerModule.createDocument(

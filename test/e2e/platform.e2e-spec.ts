@@ -1,4 +1,9 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { WEB_DIST } from '../../src/web-app';
 import { TestApp } from '../helpers/test-app';
+
+const webBuilt = existsSync(join(WEB_DIST, 'index.html'));
 
 describe('Platform (e2e)', () => {
   let t: TestApp;
@@ -44,6 +49,27 @@ describe('Platform (e2e)', () => {
       .send({ email: 'a@b.com', password: 'x'.repeat(20_000) })
       .expect(413);
     expect(large.body.error.code).toBe('PAYLOAD_TOO_LARGE');
+  });
+
+  // Runs when the frontend is built (always in CI, which builds web/ before this suite).
+  (webBuilt ? describe : describe.skip)('frontend served from the same origin', () => {
+    it('serves the app for page routes, including client-side ones', async () => {
+      for (const path of ['/', '/login', '/admin/live-tests']) {
+        const res = await t.http().get(path).set('Accept', 'text/html').expect(200);
+        expect(res.headers['content-type']).toMatch(/text\/html/);
+        expect(res.text).toContain('<div id="root">');
+      }
+    });
+
+    it('never shadows the API: /v1 paths stay JSON even for browsers', async () => {
+      const res = await t.http().get('/v1/nope').set('Accept', 'text/html').expect(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('keeps JSON 404s for non-browser clients', async () => {
+      const res = await t.http().get('/some/page').expect(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
   });
 
   it('sets security headers', async () => {

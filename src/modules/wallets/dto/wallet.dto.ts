@@ -1,4 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsEmail, MaxLength } from 'class-validator';
+import { normalizeEmail } from '../../../common/identity';
 import { type LedgerEntry, type Transaction, type Wallet } from '../../../database/entities';
 import { PaginationQueryDto } from '../../../common/pagination';
 
@@ -60,4 +63,21 @@ export class LedgerPageDto {
   @ApiProperty({ type: [LedgerEntryResponseDto] })
   data!: LedgerEntryResponseDto[];
   nextCursor!: string | null;
+}
+
+export class ResolveRecipientQueryDto {
+  /** The recipient's email address. @example "bob@example.com" */
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? normalizeEmail(value) : value,
+  )
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
+}
+
+export class RecipientResponseDto {
+  walletId!: string;
+  currency!: string;
+  /** Masked for privacy, e.g. "Ada L.", so the sender can confirm the recipient. */
+  accountName!: string;
 }

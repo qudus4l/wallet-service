@@ -22,7 +22,12 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
       - run: npm ci
+      # Frontend first: type-checks the React app and lets the e2e suite exercise same-origin serving.
+      - run: npm run build:web
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck

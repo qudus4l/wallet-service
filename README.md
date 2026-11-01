@@ -1,17 +1,33 @@
 # Wallet Service
 
-A wallet service with user accounts, wallets and wallet-to-wallet transfers that stay correct under concurrent requests and cannot be executed twice. Admins can block and unblock users, maintain a blacklist, and fund wallets.
+A wallet service with user accounts, wallets and wallet-to-wallet transfers that stay correct under concurrent requests and cannot be executed twice. Admins can block and unblock users, maintain a blacklist, and fund wallets. A React web app, served by the same service, lets you try all of it in the browser.
 
-**NestJS 12 · TypeScript · PostgreSQL 18 · TypeORM · Render**
+**NestJS 12 · TypeScript · PostgreSQL 18 · TypeORM · React 19 · Render**
 
 |                        |                                               |
 | ---------------------- | --------------------------------------------- |
-| **Live API**           | https://wallet-service-oxbp.onrender.com      |
+| **Web app**            | https://wallet-service-oxbp.onrender.com      |
+| **API base**           | https://wallet-service-oxbp.onrender.com/v1   |
 | **API docs (Swagger)** | https://wallet-service-oxbp.onrender.com/docs |
 | **Design document**    | [`docs/DESIGN.md`](docs/DESIGN.md)            |
 | **Decision records**   | [`docs/adr/`](docs/adr/README.md)             |
 
 > **Free-tier notes for reviewers.** The service runs on Render's free plan: the first request after 15 idle minutes takes about a minute while the instance wakes up. The free database expires on **2026-12-01**, 30 days after creation (see [ADR-0007](docs/adr/0007-hosting-on-render-free-tier.md)).
+
+## Try it in five minutes
+
+1. Open the **[web app](https://wallet-service-oxbp.onrender.com)**. If it has been idle, give it about a minute to wake up.
+2. **As a customer:** create an account, then sign in. Your naira wallet is created with the account.
+3. **As an admin:** sign in with the admin details from the submission email. The Admin area lets you:
+   - **Users:** find any user, add funds to their wallet, block or unblock them. A blocked user is signed out at once.
+   - **Blacklist:** list an email or phone number. It can no longer register, send or receive.
+   - **Activity log:** every admin action, which can't be edited.
+   - **Live tests:** two one-click tests that run against the live database:
+     - **Double-spend:** 25 simultaneous ₦1.00 payments from a ₦10.00 wallet. Exactly 10 succeed and the balance stops at ₦0.00.
+     - **Duplicate request:** the same payment sent 10 times at once. One payment; the other 9 get the original receipt.
+4. **Send money:** fund your customer account as the admin, then sign back in as the customer and pay another account by email. The app confirms the recipient's masked name first. Press **Send the same request again** on the receipt: the server returns the original receipt instead of paying twice.
+
+Prefer the raw API? Use [Swagger](https://wallet-service-oxbp.onrender.com/docs) or the [curl walkthrough](#walkthrough) below.
 
 ---
 
@@ -103,8 +119,14 @@ cp .env.example .env          # local defaults; change JWT_SECRET and ADMIN_PASS
 docker compose up -d --wait   # PostgreSQL 18 on localhost:5434
 npm ci
 npm run migrate:dev           # apply migrations, create SYSTEM wallet and admin
-npm run start:dev             # http://localhost:3000, docs at /docs
+npm run start:dev             # API on http://localhost:3000, docs at /docs
+
+# Web app, in a second terminal (hot reload; proxies /v1 to the API)
+npm ci --prefix web
+npm run dev:web               # http://localhost:5173
 ```
+
+In production the web app is built (`npm run build:web`) and served by NestJS from the same origin as the API. This means one URL and no CORS ([ADR-0008](docs/adr/0008-frontend-served-from-the-api.md)).
 
 ## Tests
 
@@ -153,6 +175,11 @@ src/
     audit/       append-only audit trail
     health/      liveness / readiness
   scripts/migrate.ts                     migrations + seed (runs on start)
+  web-app.ts                             serves the built web app from the same origin
+web/                                     React 19 + Vite web app
+  src/lib/          API client (error codes, idempotency keys), money in kobo, auth
+  src/pages/        sign in/up, wallet dashboard + send money, admin (users,
+                    blacklist, activity log, live tests)
 test/
   unit/  e2e/  concurrency/
 docs/

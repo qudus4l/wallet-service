@@ -5,7 +5,8 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**', 'eslint.config.mjs', 'test/*.config.js'] },
+  // web/ is a separate Vite app, type-checked by its own `tsc -b`.
+  { ignores: ['dist/**', 'coverage/**', 'web/**', 'eslint.config.mjs', 'test/*.config.js'] },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   prettier,

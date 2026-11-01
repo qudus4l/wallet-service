@@ -11,3 +11,4 @@ Format follows the `architecture` skill (Context → Decision → Options → Tr
 | [0005](0005-idempotency-and-replay-protection.md) | Database-backed idempotency keys for replay protection          | Accepted |
 | [0006](0006-authentication-jwt-with-roles.md)     | User JWT authentication with an ADMIN role                      | Accepted |
 | [0007](0007-hosting-on-render-free-tier.md)       | Render free tier via a Blueprint, migrations at boot            | Accepted |
+| [0008](0008-frontend-served-from-the-api.md)      | React web app served by the API from the same origin            | Accepted |

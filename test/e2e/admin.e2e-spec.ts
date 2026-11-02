@@ -180,6 +180,25 @@ describe('Admin (e2e)', () => {
         .set('Idempotency-Key', key)
         .send({ amount });
 
+    it('shows the funding note as the reason in the audit log', async () => {
+      await t
+        .http()
+        .post(`/v1/admin/wallets/${user.walletId}/deposits`)
+        .set('Authorization', `Bearer ${admin}`)
+        .set('Idempotency-Key', randomUUID())
+        .send({ amount: 100, narration: 'Wallet top-up' })
+        .expect(201);
+      let audit = await as(admin).get('/v1/admin/audit-logs').expect(200);
+      expect(audit.body.data[0]).toMatchObject({
+        action: 'WALLET_DEPOSIT',
+        reason: 'Wallet top-up',
+      });
+
+      await deposit(user.walletId, 100, randomUUID()).expect(201);
+      audit = await as(admin).get('/v1/admin/audit-logs').expect(200);
+      expect(audit.body.data[0]).toMatchObject({ action: 'WALLET_DEPOSIT', reason: null });
+    });
+
     it('credits the wallet from the SYSTEM wallet, once per key', async () => {
       const key = randomUUID();
       await deposit(user.walletId, 5_000, key).expect(201);

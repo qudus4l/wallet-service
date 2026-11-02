@@ -216,6 +216,7 @@ export class TransfersService {
         action: 'WALLET_DEPOSIT',
         targetType: 'WALLET',
         targetId: destination.id,
+        reason: tx.narration,
         metadata: { transactionId: tx.id, amount: cmd.amount, currency: tx.currency },
       });
     }

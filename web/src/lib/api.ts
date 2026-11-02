@@ -94,7 +94,7 @@ export class ApiError extends Error {
   }
 }
 
-/** UI copy for API errors (FRONTEND_SPEC §3). Branches on the code, never the message. */
+/** UI copy for API errors. Branches on the code, never the message. */
 export function errorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Something went wrong. Try again.';
   switch (error.code) {

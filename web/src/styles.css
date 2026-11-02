@@ -1,5 +1,3 @@
-/* Copied from the approved design (wallet-demo.html). Edits: demo strip removed (its rules, and the
-   44px it reserved in 100vh heights), and the phone rule that hid the removed footer note. */
 :root {
   --ink: #202a26;
   --muted: #707973;

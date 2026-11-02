@@ -36,7 +36,7 @@ interface MovementCommand {
 export type MovementResult = StoredResponse<TransactionResponseDto>;
 
 /**
- * The money-movement engine (DESIGN §6, ADR-0004, ADR-0005). Every movement runs in one
+ * The money-movement engine (ADR-0004, ADR-0005). Every movement runs in one
  * READ COMMITTED transaction: claim idempotency key → lock both wallets in id order →
  * validate under the lock → write balances, transaction and ledger entries → store response.
  */

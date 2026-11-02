@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Format follows the `architecture` skill (Context → Decision → Options → Trade-offs → Consequences). All decided 2026-11-01.
+All decided 2026-11-01.
 
 | ADR                                               | Decision                                                        | Status   |
 | ------------------------------------------------- | --------------------------------------------------------------- | -------- |

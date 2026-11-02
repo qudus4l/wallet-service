@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { TestApp, type TestUser } from '../helpers/test-app';
 
 /**
- * DESIGN §8 must-pass concurrency tests. Requests are fired truly in parallel over
+ * Must-pass concurrency tests. Requests are fired truly in parallel over
  * real sockets against real PostgreSQL; nothing is mocked.
  */
 describe('Transfers under concurrency', () => {

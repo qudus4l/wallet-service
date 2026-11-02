@@ -28,9 +28,9 @@ Users create accounts and move _their own_ money; admins block/unblock users, ma
 
 **Rejected — server-side sessions/cookies:** adds a session store and CSRF handling for an API that has no browser front-end.
 
-## Skill alignment
+## Refresh tokens
 
-Follows `nestjs-best-practices` → `security-auth-jwt` (short-lived tokens, issuer/audience, validate the user still exists and is active), `security-use-guards`, `security-rate-limiting` (stricter limits on `/auth/*`). **Deviation:** the skill recommends refresh tokens; omitted to avoid over-engineering for an assessment (users re-login after 15 min). Recorded on the revisit list.
+Omitted to avoid over-engineering: users log in again after 15 minutes. Add them when real clients need long sessions.
 
 ## Consequences
 

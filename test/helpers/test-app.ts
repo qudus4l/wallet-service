@@ -132,7 +132,7 @@ export class TestApp {
   }
 
   /**
-   * Ledger invariants (DESIGN §8 test 7):
+   * Ledger invariants:
    * Σ all balances = 0; per wallet Σ credits − Σ debits = balance; two entries per transaction.
    */
   async assertLedgerInvariants(): Promise<void> {

@@ -32,9 +32,9 @@ Use **NestJS 12** (Express adapter) on **Node.js 24 LTS**, compiled with `nest b
 
 Node 24 is the mature Active LTS (EOL April 2028). Node 26 entered LTS only on 2026-10-28; library support is still settling. NestJS 12 requires Node ≥ 20 and TypeORM 1.x supports `>=24.11.0`.
 
-## Skill conflict resolved
+## Why there is a build step
 
-The `node` skill recommends Node's native type stripping (no build step). That only supports TC39 decorators and no `emitDecoratorMetadata`, while NestJS DI depends on legacy decorators + metadata. **Resolution:** compile with `nest build`; keep the rest of the skill's guidance (pino, explicit config vars, graceful shutdown, error causes).
+Node's native type stripping needs no build step, but it only supports TC39 decorators and no `emitDecoratorMetadata`, while NestJS dependency injection depends on legacy decorators and metadata. So the code is compiled with `nest build`.
 
 ## Consequences
 

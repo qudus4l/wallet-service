@@ -63,6 +63,8 @@ export function SendPage() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>({ email: '', amount: '', narration: '' });
   const [payment, setPayment] = useState<Payment | null>(null);
+  /** Worked out when Review opens, so a balance refresh can't change what was reviewed. */
+  const [balanceAfter, setBalanceAfter] = useState(0);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -119,6 +121,7 @@ export function SendPage() {
       if (!payment || JSON.stringify(payment.body) !== JSON.stringify(body)) {
         setPayment({ key: newIdempotencyKey(), body, recipient: { name: r.accountName, email } });
       }
+      setBalanceAfter(w.balance - amount);
       setFinding(false);
       toStep(1);
     } catch (error) {
@@ -154,6 +157,15 @@ export function SendPage() {
       toStep(2);
     } catch (error) {
       busy.current = false;
+      // The balance may have changed elsewhere, or this payment may have reached the server.
+      void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      void queryClient.invalidateQueries({ queryKey: ['history'] });
+      if (error instanceof ApiError && error.code === 'INSUFFICIENT_FUNDS') {
+        // Retrying can't help: back to the amount, beside the refreshed balance.
+        toStep(0);
+        setErrors({ amount: errorMessage(error) });
+        return;
+      }
       setMessage(errorMessage(error));
       setSending('retry');
     }
@@ -249,7 +261,7 @@ export function SendPage() {
               <Detail label="From">Your NGN wallet</Detail>
               <Detail label="Note">{payment.body.narration || '—'}</Detail>
               <Detail label="Balance after">
-                <strong className="money">{money(w.balance - payment.body.amount)}</strong>
+                <strong className="money">{money(balanceAfter)}</strong>
               </Detail>
             </dl>
             <div id="payment-message" aria-live="polite">

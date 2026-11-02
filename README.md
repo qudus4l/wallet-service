@@ -18,6 +18,7 @@ A wallet service with user accounts, wallets and wallet-to-wallet transfers that
 
 1. Open the **[web app](https://wallet-service-oxbp.onrender.com)**. If it has been idle, give it about a minute to wake up.
 2. **As a customer:** on the sign-in page press **Use customer** (demo account `ada@example.com`, password `wallet-demo`), or create your own account. Your naira wallet is created with the account.
+   - A new wallet starts at ₦0.00, and only an admin can add funds. To fund your own account without admin access, sign in as Ada and send it some money, using your account's email as the recipient.
 3. **As an admin:** press **Use admin** (`admin@example.com`) and enter the admin password from the submission email. The Admin area lets you:
    - **Users:** find any user, add funds to their wallet, block or unblock them. A blocked user is signed out at once.
    - **Blacklist:** list an email or phone number. It can no longer register, send or receive.
@@ -81,31 +82,31 @@ The full list of codes is in [DESIGN §5](docs/DESIGN.md#5-api).
 
 ```bash
 API=http://localhost:3000   # or the live URL
+RUN=$(date +%s)             # keeps the emails unique, so this can be run again
 
-# 1. Two users
-curl -s -X POST $API/v1/auth/register -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","password":"correct-horse-1","fullName":"Ada Lovelace"}'
-curl -s -X POST $API/v1/auth/register -H 'Content-Type: application/json' \
-  -d '{"email":"bob@example.com","password":"correct-horse-2","fullName":"Bob"}'
-#   → each response includes the new wallet id: save them as ADA_WALLET and BOB_WALLET
+# 1. Two users. Each response includes the new wallet id.
+GRACE_WALLET=$(curl -s -X POST $API/v1/auth/register -H 'Content-Type: application/json' \
+  -d "{\"email\":\"grace-$RUN@example.com\",\"password\":\"correct-horse-1\",\"fullName\":\"Grace Hopper\"}" | jq -r '.wallets[0].id')
+LINUS_WALLET=$(curl -s -X POST $API/v1/auth/register -H 'Content-Type: application/json' \
+  -d "{\"email\":\"linus-$RUN@example.com\",\"password\":\"correct-horse-2\",\"fullName\":\"Linus Pauling\"}" | jq -r '.wallets[0].id')
 
-# 2. Log in as the admin and fund Ada's wallet with ₦500.00
+# 2. Log in as the admin and fund Grace's wallet with ₦500.00
 ADMIN=$(curl -s -X POST $API/v1/auth/login -H 'Content-Type: application/json' \
   -d '{"email":"<ADMIN_EMAIL>","password":"<ADMIN_PASSWORD>"}' | jq -r .accessToken)
-curl -s -X POST $API/v1/admin/wallets/$ADA_WALLET/deposits \
+curl -s -X POST $API/v1/admin/wallets/$GRACE_WALLET/deposits \
   -H "Authorization: Bearer $ADMIN" -H "Idempotency-Key: $(uuidgen)" \
   -H 'Content-Type: application/json' -d '{"amount":50000}'
 
-# 3. Ada sends Bob ₦120.00. Run this twice: the second call replays the first.
-ADA=$(curl -s -X POST $API/v1/auth/login -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","password":"correct-horse-1"}' | jq -r .accessToken)
+# 3. Grace sends Linus ₦120.00. Run the transfer twice: the second call replays the first.
+GRACE=$(curl -s -X POST $API/v1/auth/login -H 'Content-Type: application/json' \
+  -d "{\"email\":\"grace-$RUN@example.com\",\"password\":\"correct-horse-1\"}" | jq -r .accessToken)
 KEY=$(uuidgen)
 curl -si -X POST $API/v1/transfers \
-  -H "Authorization: Bearer $ADA" -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' \
-  -d "{\"sourceWalletId\":\"$ADA_WALLET\",\"destinationWalletId\":\"$BOB_WALLET\",\"amount\":12000}"
+  -H "Authorization: Bearer $GRACE" -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' \
+  -d "{\"sourceWalletId\":\"$GRACE_WALLET\",\"destinationWalletId\":\"$LINUS_WALLET\",\"amount\":12000}"
 
-# 4. Ada's history
-curl -s "$API/v1/wallets/$ADA_WALLET/transactions?limit=10" -H "Authorization: Bearer $ADA"
+# 4. Grace's history
+curl -s "$API/v1/wallets/$GRACE_WALLET/transactions?limit=10" -H "Authorization: Bearer $GRACE"
 ```
 
 Or open `/docs`, click **Authorize**, and paste a token.

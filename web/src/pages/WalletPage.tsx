@@ -38,7 +38,7 @@ export function WalletPage() {
     />
   );
   const failed = wallet.error ?? history.error;
-  if (failed)
+  if (failed && !(wallet.data && history.data))
     return (
       <>
         {head}

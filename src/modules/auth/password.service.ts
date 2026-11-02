@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as argon2 from 'argon2';
 
 /** argon2id at the OWASP minimum (m=19 MiB, t=2, p=1), sized for a 0.1 CPU / 512 MB instance. */
@@ -11,6 +11,8 @@ const HASH_OPTIONS = {
 
 @Injectable()
 export class PasswordService {
+  private readonly logger = new Logger(PasswordService.name);
+
   /** Verified against unknown emails so response time does not reveal which accounts exist. */
   private dummyHash?: Promise<string>;
 
@@ -24,7 +26,10 @@ export class PasswordService {
     try {
       const valid = await argon2.verify(target, password);
       return valid && hash !== undefined;
-    } catch {
+    } catch (error) {
+      // argon2 returns false for a wrong password; a throw is a fault (e.g. a corrupt hash).
+      // The caller still sees a failed login, but this must not look like a mistyped password.
+      this.logger.error(`Password verification failed: ${(error as Error).message}`);
       return false;
     }
   }

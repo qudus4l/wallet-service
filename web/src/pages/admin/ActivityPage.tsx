@@ -63,7 +63,7 @@ export function ActivityPage() {
     <>
       <PageHead title="Activity log" sub="A record of every admin action. Newest first." />
       <div className="card">
-        {logs.error ? (
+        {logs.error && !logs.data ? (
           <Note kind="error">{errorMessage(logs.error)}</Note>
         ) : !logs.data ? null : list.length ? (
           <>

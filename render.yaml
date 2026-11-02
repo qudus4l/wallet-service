@@ -38,8 +38,9 @@ services:
         value: 'true'
       - key: RATE_LIMIT_ENABLED
         value: 'true'
+      # Chain on Render: client, Cloudflare, Render's internal proxy. Three hops back is the client.
       - key: TRUST_PROXY
-        value: '1'
+        value: '3'
 
 databases:
   - name: wallet-db

@@ -124,7 +124,7 @@ export function UsersPage() {
           </form>
           <span className="muted small">{userQuery ? 'Exact match' : 'Newest accounts first'}</span>
         </div>
-        {users.error ? (
+        {users.error && !users.data ? (
           <Note kind="error">{errorMessage(users.error)}</Note>
         ) : !users.data ? null : list.length ? (
           <>

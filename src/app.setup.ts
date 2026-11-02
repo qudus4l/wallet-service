@@ -10,7 +10,8 @@ import { serveWebApp } from './web-app';
 export function configureApp(app: NestExpressApplication): void {
   const config = app.get(AppConfig);
 
-  // Render terminates TLS at its proxy; trust it so req.ip is the real client (rate limiting).
+  // Number of proxies in front of the app, so req.ip is the real client (rate limiting).
+  // Too low and every visitor shares a proxy's limit; set per platform (render.yaml).
   app.set('trust proxy', config.get('TRUST_PROXY'));
   app.use(requestIdMiddleware);
   app.use(helmet());

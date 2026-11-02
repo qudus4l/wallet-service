@@ -61,7 +61,7 @@ export function BlacklistPage() {
             <Icon name="search" /> Check an identity
           </button>
         </div>
-        {entries.error ? (
+        {entries.error && !entries.data ? (
           <Note kind="error">{errorMessage(entries.error)}</Note>
         ) : !entries.data ? null : list.length ? (
           <>

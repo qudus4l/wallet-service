@@ -22,7 +22,7 @@ Use **TypeORM 1.x** via the official **`@nestjs/typeorm`** module, with versione
 | Migrations               | Versioned classes, plain SQL                                                         | Generated from Prisma schema DSL                                             | drizzle-kit                                         |
 | Monthly downloads        | ~21M                                                                                 | ~76M                                                                         | ~117M                                               |
 
-**TypeORM — pros:** the transfer path stays in the ORM (no untyped raw SQL where correctness matters most); transactions via `DataSource.transaction()`/`QueryRunner`; official Nest module; the `nestjs-best-practices` skill's patterns assume it.
+**TypeORM — pros:** the transfer path stays in the ORM (no untyped raw SQL where correctness matters most); transactions via `DataSource.transaction()`/`QueryRunner`; official Nest module.
 **TypeORM — cons:** decorator-based entities; `bigint` returned as string (handled by a guarded transformer); history of a maintenance lapse (resolved since the 2024 handover).
 
 **Prisma — pros:** best documentation and DX. **Cons:** the one feature we cannot compromise on (row locking) requires raw SQL in stable releases; extra schema language and generate step; mid-major-version churn.

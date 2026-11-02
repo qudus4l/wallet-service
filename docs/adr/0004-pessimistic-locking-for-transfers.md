@@ -40,7 +40,7 @@ validate under the lock, then write balances and ledger entries. A DB `CHECK (ba
 
 ## Trade-off analysis
 
-Pessimistic locking is the standard choice for ledgers because correctness is simple to prove and the cost (serialising per wallet) matches the domain. Skill alignment: `supabase-postgres-best-practices` → `lock-deadlock-prevention`, `lock-short-transactions`. **Skill conflict resolved:** the `nestjs-best-practices` transaction example debits before checking and does not order locks, which can deadlock on opposite-direction transfers; this design follows the Postgres rule instead.
+Pessimistic locking is the standard choice for ledgers because correctness is simple to prove and the cost (serialising per wallet) matches the domain. Locks are always taken in ascending id order and the transaction is kept short, because debiting first without ordering locks can deadlock on opposite-direction transfers.
 
 ## Consequences
 

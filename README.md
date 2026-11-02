@@ -15,10 +15,18 @@ A wallet service with user accounts, wallets and wallet-to-wallet transfers that
 
 ## Try it in five minutes
 
+These logins are for this demo only. The money is fictional, and the passwords are published on purpose.
+
+| Role     | Email               | Password                   |
+| -------- | ------------------- | -------------------------- |
+| Customer | `ada@example.com`   | `wallet-demo`              |
+| Customer | `bob@example.com`   | `wallet-demo`              |
+| Admin    | `admin@example.com` | `hUlKugHxvi7UsMwz7On2gdjz` |
+
 1. Open the **[web app](https://wallet-service-oxbp.onrender.com)**. If it has been idle, give it about a minute to wake up.
 2. **As a customer:** on the sign-in page press **Use customer** (demo account `ada@example.com`, password `wallet-demo`), or create your own account. Your naira wallet is created with the account.
    - A new wallet starts at ₦0.00, and only an admin can add funds. To fund your own account without admin access, sign in as Ada and send it some money, using your account's email as the recipient.
-3. **As an admin:** press **Use admin** (`admin@example.com`) and enter the admin password from the submission email. The Admin area lets you:
+3. **As an admin:** press **Use admin** (`admin@example.com`) and enter the admin password from the table above. The Admin area lets you:
    - **Users:** find any user, add funds to their wallet, block or unblock them. A blocked user loses access at once and is signed out on their next request.
    - **Blacklist:** list an email or phone number. It can no longer register, send or receive.
    - **Activity log:** every admin action, which can't be edited.
@@ -265,7 +273,7 @@ Money is stored as integers, never floats. Primary keys are UUIDv7.
 - **Rate limits:** 120 requests a minute per client, 10 a minute per IP on `/auth/*`, and 30 transfers a minute per user.
 - **Login:** one generic error, with a dummy hash check for unknown emails so response times match.
 - **Input and output:** unknown fields are rejected, request bodies are capped at 10 kB, and responses are built from DTOs, so password hashes are never serialised. Logs redact credentials.
-- **Secrets:** kept only in Render's environment. The app validates its configuration at boot and refuses to start if it's wrong.
+- **Secrets:** the signing key and database credentials are kept only in Render's environment, and the admin password above is public only because this is a demo. The app validates its configuration at boot and refuses to start if it's wrong.
 
 ## Trade-offs and next steps
 
